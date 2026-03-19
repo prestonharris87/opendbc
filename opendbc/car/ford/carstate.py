@@ -50,6 +50,7 @@ class CarState(CarStateBase):
     # Full-size Bronco steering pinion has a small offset from center
     if self.CP.flags & FordFlags.LKA_STEERING:
       ret.steeringAngleDeg -= 2.8
+
     ret.steeringTorque = cp.vl["EPAS_INFO"]["SteeringColumnTorque"]
     ret.steeringPressed = self.update_steering_pressed(abs(ret.steeringTorque) > CarControllerParams.STEER_DRIVER_ALLOWANCE, 5)
     ret.steerFaultTemporary = cp.vl["EPAS_INFO"]["EPAS_Failure"] == 1
@@ -61,8 +62,9 @@ class CarState(CarStateBase):
       ret.steerFaultTemporary |= cp.vl["Lane_Assist_Data3_FD1"]["LatCtlSte_D_Stat"] not in (1, 2, 3)
 
     # LKA availability for vehicles using LKA-based steering (e.g. full-size Bronco)
+    # Default to True — Lane_Assist_Data3_FD1 is unreliable/missing on the full-size Bronco
     if self.CP.flags & FordFlags.LKA_STEERING:
-      self.lkas_available = cp.vl["Lane_Assist_Data3_FD1"]["LaActAvail_D_Actl"] == 3
+      self.lkas_available = True
 
     # cruise state
     is_metric = cp.vl["INSTRUMENT_PANEL"]["METRIC_UNITS"] == 1 if not self.CP.flags & FordFlags.CANFD else False
