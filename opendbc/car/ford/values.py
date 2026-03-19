@@ -46,11 +46,13 @@ class CarControllerParams:
 class FordSafetyFlags(IntFlag):
   LONG_CONTROL = 1
   CANFD = 2
+  LKA_STEERING = 4
 
 
 class FordFlags(IntFlag):
   # Static flags
   CANFD = 1
+  LKA_STEERING = 2  # Uses LKA angle-based steering instead of LCA curvature (e.g. full-size Bronco)
 
 
 class RADAR:
@@ -112,6 +114,14 @@ class FordCANFDPlatformConfig(FordPlatformConfig):
 
 
 @dataclass
+class FordLKAPlatformConfig(FordPlatformConfig):
+  """Platform config for Ford vehicles using LKA angle-based steering (no LCA/TJA support)."""
+  def init(self):
+    super().init()
+    self.flags |= FordFlags.LKA_STEERING
+
+
+@dataclass
 class FordF150LightningPlatform(FordCANFDPlatformConfig):
   def init(self):
     super().init()
@@ -121,6 +131,10 @@ class FordF150LightningPlatform(FordCANFDPlatformConfig):
 
 
 class CAR(Platforms):
+  FORD_BRONCO_MK6 = FordLKAPlatformConfig(
+    [FordCarDocs("Ford Bronco 2021-24", "Co-Pilot360 + Forscan ACC Stop-and-Go")],
+    CarSpecs(mass=2200, wheelbase=2.95, steerRatio=16.7),
+  )
   FORD_BRONCO_SPORT_MK1 = FordPlatformConfig(
     [FordCarDocs("Ford Bronco Sport 2021-24")],
     CarSpecs(mass=1625, wheelbase=2.67, steerRatio=17.7),

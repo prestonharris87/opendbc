@@ -33,16 +33,41 @@ def calculate_lat_ctl2_checksum(mode: int, counter: int, dat: bytearray) -> int:
   return 0xFF - (checksum & 0xFF)
 
 
-def create_lka_msg(packer, CAN: CanBus):
+def create_lka_msg(packer, CAN: CanBus, lat_active: bool = False, apply_angle: float = 0.,
+                    curvature: float = 0., direction: int = 0, ramp_type: int = 0):
   """
-  Creates an empty CAN message for the Ford LKA Command.
+  Creates a CAN message for the Ford LKA Command.
 
-  This command can apply "Lane Keeping Aid" maneuvers, which are subject to the PSCM lockout.
+  This command can apply "Lane Keeping Aid" maneuvers, which are subject to the PSCM lockout
+  (typically ~7 seconds of continuous steering). Used for vehicles whose PSCM does not support
+  Lane Centering (LCA/TJA), such as the full-size Ford Bronco.
+
+  When lat_active is False, sends an empty/inactive message (standard behavior for LCA cars).
+  When lat_active is True, sends steering angle commands for LKA-based lateral control.
+
+  Signals:
+    LkaActvStats_D2_Req: 0=off, 2=left intervention, 4=right intervention
+    LaRefAng_No_Req: steering angle in milliradians [-102.4|102.3]
+    LaRampType_B_Req: 0=slow, 1=fast ramp
+    LdwActvIntns_D_Req: intervention intensity (3=active)
 
   Frequency is 33Hz.
   """
 
-  return packer.make_can_msg("Lane_Assist_Data1", CAN.main, {})
+  if lat_active:
+    # Convert angle from degrees to milliradians and clip to signal range
+    angle_mrad = apply_angle * 17.4533  # deg * (pi/180) * 1000
+    angle_mrad = max(-102.4, min(102.3, angle_mrad))
+    values = {
+      "LkaActvStats_D2_Req": direction,
+      "LaRefAng_No_Req": angle_mrad,
+      "LaRampType_B_Req": ramp_type,
+      "LdwActvIntns_D_Req": 3,
+    }
+  else:
+    values = {}
+
+  return packer.make_can_msg("Lane_Assist_Data1", CAN.main, values)
 
 
 def create_lat_ctl_msg(packer, CAN: CanBus, lat_active: bool, path_offset: float, path_angle: float, curvature: float,

@@ -5,6 +5,20 @@ from opendbc.car.ford.values import CAR
 Ecu = CarParams.Ecu
 
 FW_VERSIONS = {
+  CAR.FORD_BRONCO_MK6: {
+    (Ecu.eps, 0x730, None): [
+      b'NB3C-14D003-AB\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
+    ],
+    (Ecu.abs, 0x760, None): [
+      b'MB3C-2D053-XC\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
+    ],
+    (Ecu.fwdRadar, 0x764, None): [
+      b'M2DT-14D049-AB\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
+    ],
+    (Ecu.fwdCamera, 0x706, None): [
+      b'M2DT-14F397-AH\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
+    ],
+  },
   CAR.FORD_BRONCO_SPORT_MK1: {
     (Ecu.eps, 0x730, None): [
       b'LX6C-14D003-AH\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',

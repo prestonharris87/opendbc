@@ -56,7 +56,11 @@ class CarInterface(CarInterfaceBase):
       ret.safetyConfigs[-1].safetyParam |= FordSafetyFlags.LONG_CONTROL.value
       ret.openpilotLongitudinalControl = True
 
-    if ret.flags & FordFlags.CANFD:
+    if ret.flags & FordFlags.LKA_STEERING:
+      # LKA steering vehicles (e.g. full-size Bronco) use Lane Keep Aid instead of LCA/TJA.
+      # Skip the EPS TJA/LCA capability check since these cars steer via LKA angle commands.
+      ret.safetyConfigs[-1].safetyParam |= FordSafetyFlags.LKA_STEERING.value
+    elif ret.flags & FordFlags.CANFD:
       ret.safetyConfigs[-1].safetyParam |= FordSafetyFlags.CANFD.value
 
       # TRON (SecOC) platforms are not supported
@@ -82,7 +86,10 @@ class CarInterface(CarInterfaceBase):
 
     # Auto Transmission: 0x732 ECU or Gear_Shift_by_Wire_FD1
     found_ecus = [fw.ecu for fw in car_fw]
-    if Ecu.shiftByWire in found_ecus or 0x5A in fingerprint[CAN.main] or docs:
+    if ret.flags & FordFlags.LKA_STEERING:
+      # Full-size Bronco uses a physical gear lever (not shift-by-wire) but is automatic
+      ret.transmissionType = TransmissionType.automatic
+    elif Ecu.shiftByWire in found_ecus or 0x5A in fingerprint[CAN.main] or docs:
       ret.transmissionType = TransmissionType.automatic
     else:
       ret.transmissionType = TransmissionType.manual
