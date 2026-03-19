@@ -330,6 +330,13 @@ static safety_config ford_init(uint16_t param) {
     {FORD_LateralMotionControl, 0, 8, .check_relay = true},
   };
 
+  // LKA steering (full-size Bronco): no ACCDATA or LateralMotionControl relay blocking.
+  // Camera's ACCDATA and other messages pass through the relay unblocked so the car's
+  // ACC, AEB, and pre-collision systems continue to work with stock camera data.
+  static const CanMsg FORD_LKA_TX_MSGS[] = {
+    FORD_COMMON_TX_MSGS
+  };
+
   const uint16_t FORD_PARAM_CANFD = 2;
   const uint16_t FORD_PARAM_LKA_STEERING = 4;
   const bool ford_canfd = GET_FLAG(param, FORD_PARAM_CANFD);
@@ -346,7 +353,9 @@ static safety_config ford_init(uint16_t param) {
   ford_longitudinal = !ford_canfd || ford_longitudinal;
 
   safety_config ret;
-  if (ford_canfd) {
+  if (ford_lka_steering) {
+    ret = BUILD_SAFETY_CFG(ford_rx_checks, FORD_LKA_TX_MSGS);
+  } else if (ford_canfd) {
     ret = ford_longitudinal ? BUILD_SAFETY_CFG(ford_rx_checks, FORD_CANFD_LONG_TX_MSGS) : \
                               BUILD_SAFETY_CFG(ford_rx_checks, FORD_CANFD_STOCK_TX_MSGS);
   } else {

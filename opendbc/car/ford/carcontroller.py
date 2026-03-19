@@ -107,9 +107,7 @@ class CarController(CarControllerBase):
     ### lateral control ###
     if self.CP.flags & FordFlags.LKA_STEERING:
       # LKA angle-based steering (full-size Bronco and similar)
-      # Send inactive LateralMotionControl at 20Hz (required for relay check)
-      if (self.frame % CarControllerParams.STEER_STEP) == 0:
-        can_sends.append(fordcan.create_lat_ctl_msg(self.packer, self.CAN, False, 0., 0., 0., 0.))
+      # Note: no LateralMotionControl sent — camera's messages pass through relay unblocked
 
       # Send active LKA steering commands at 33Hz
       if (self.frame % CarControllerParams.LKA_STEP) == 0:
