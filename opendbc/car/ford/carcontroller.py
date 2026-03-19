@@ -195,21 +195,30 @@ class CarController(CarControllerBase):
       self.gas = gas
 
     ### ui ###
-    send_ui = (self.main_on_last != main_on) or (self.lkas_enabled_last != CC.latActive) or (self.steer_alert_last != steer_alert)
-    # send lkas ui msg at 1Hz or if ui state changes
-    if (self.frame % CarControllerParams.LKAS_UI_STEP) == 0 or send_ui:
-      can_sends.append(fordcan.create_lkas_ui_msg(self.packer, self.CAN, main_on, CC.latActive, steer_alert, hud_control, CS.lkas_status_stock_values))
+    if self.CP.flags & FordFlags.LKA_STEERING:
+      # Full-size Bronco: pass through IPMA_Data and ACCDATA_3 completely unmodified from camera.
+      # Modifying these messages causes pre-collision assist and ACC failures because the Bronco
+      # doesn't have TJA/LCA and its safety systems don't expect modified ADAS messages.
+      if (self.frame % CarControllerParams.LKAS_UI_STEP) == 0:
+        can_sends.append(self.packer.make_can_msg("IPMA_Data", self.CAN.main, CS.lkas_status_stock_values))
+      if (self.frame % CarControllerParams.ACC_UI_STEP) == 0:
+        can_sends.append(self.packer.make_can_msg("ACCDATA_3", self.CAN.main, CS.acc_tja_status_stock_values))
+    else:
+      send_ui = (self.main_on_last != main_on) or (self.lkas_enabled_last != CC.latActive) or (self.steer_alert_last != steer_alert)
+      # send lkas ui msg at 1Hz or if ui state changes
+      if (self.frame % CarControllerParams.LKAS_UI_STEP) == 0 or send_ui:
+        can_sends.append(fordcan.create_lkas_ui_msg(self.packer, self.CAN, main_on, CC.latActive, steer_alert, hud_control, CS.lkas_status_stock_values))
 
-    # send acc ui msg at 5Hz or if ui state changes
-    if hud_control.leadDistanceBars != self.lead_distance_bars_last:
-      send_ui = True
-      self.distance_bar_frame = self.frame
+      # send acc ui msg at 5Hz or if ui state changes
+      if hud_control.leadDistanceBars != self.lead_distance_bars_last:
+        send_ui = True
+        self.distance_bar_frame = self.frame
 
-    if (self.frame % CarControllerParams.ACC_UI_STEP) == 0 or send_ui:
-      show_distance_bars = self.frame - self.distance_bar_frame < 400
-      can_sends.append(fordcan.create_acc_ui_msg(self.packer, self.CAN, self.CP, main_on, CC.latActive,
-                                                 fcw_alert, CS.out.cruiseState.standstill, show_distance_bars,
-                                                 hud_control, CS.acc_tja_status_stock_values))
+      if (self.frame % CarControllerParams.ACC_UI_STEP) == 0 or send_ui:
+        show_distance_bars = self.frame - self.distance_bar_frame < 400
+        can_sends.append(fordcan.create_acc_ui_msg(self.packer, self.CAN, self.CP, main_on, CC.latActive,
+                                                   fcw_alert, CS.out.cruiseState.standstill, show_distance_bars,
+                                                   hud_control, CS.acc_tja_status_stock_values))
 
     self.main_on_last = main_on
     self.lkas_enabled_last = CC.latActive
