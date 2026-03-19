@@ -59,11 +59,10 @@ class CarInterface(CarInterfaceBase):
     if ret.flags & FordFlags.LKA_STEERING:
       # LKA steering vehicles (e.g. full-size Bronco) use Lane Keep Aid instead of LCA/TJA.
       # Skip the EPS TJA/LCA capability check since these cars steer via LKA angle commands.
+      # Keep openpilotLongitudinalControl=True so the planner runs (avoids commIssue),
+      # but FORD_LKA_TX_MSGS safety list blocks openpilot's ACCDATA from reaching the car
+      # while the camera's native ACC commands pass through the relay unblocked.
       ret.safetyConfigs[-1].safetyParam |= FordSafetyFlags.LKA_STEERING.value
-      # Full-size Bronco uses native ACC — do NOT send openpilot longitudinal commands (ACCDATA),
-      # they conflict with the car's ACC module and cause "cruise failure"
-      ret.openpilotLongitudinalControl = False
-      ret.safetyConfigs[-1].safetyParam &= ~FordSafetyFlags.LONG_CONTROL.value
     elif ret.flags & FordFlags.CANFD:
       ret.safetyConfigs[-1].safetyParam |= FordSafetyFlags.CANFD.value
 

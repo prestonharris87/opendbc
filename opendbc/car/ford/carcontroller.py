@@ -154,7 +154,8 @@ class CarController(CarControllerBase):
 
     ### longitudinal control ###
     # send acc msg at 50Hz
-    if self.CP.openpilotLongitudinalControl and (self.frame % CarControllerParams.ACC_CONTROL_STEP) == 0:
+    # Skip for LKA cars — native ACC handles longitudinal; FORD_LKA_TX_MSGS blocks ACCDATA anyway
+    if self.CP.openpilotLongitudinalControl and not (self.CP.flags & FordFlags.LKA_STEERING) and (self.frame % CarControllerParams.ACC_CONTROL_STEP) == 0:
       accel = actuators.accel
       gas = accel
 
