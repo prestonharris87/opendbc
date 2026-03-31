@@ -36,14 +36,19 @@ class ICBMController:
     self.user_offset_pct = 0.0      # user's percentage offset from speed limit
     self.cruise_was_enabled = False  # track cruise activation edge
 
+    self.last_press_frame = 0  # frame of last button press sent
+
     # Convert time-based constants to frame counts (100 Hz control loop)
     self.pre_active_frames = int(CarControllerParams.ICBM_PRE_ACTIVE_DELAY * 100)
     self.driver_override_cooldown = int(CarControllerParams.ICBM_DRIVER_OVERRIDE_COOLDOWN * 100)
+    self.press_cooldown_frames = int(CarControllerParams.ICBM_PRESS_COOLDOWN * 100)
 
   def update(self, frame: int, cruise_enabled: bool, controls_allowed: bool,
              cruise_set_speed_mph: float, speed_limit_mph: float,
-             driver_speed_button_pressed: bool) -> tuple[bool, bool]:
-    """Returns (speed_inc, speed_dec) booleans for this frame."""
+             driver_speed_button_pressed: bool,
+             hazard_reduction_pct: float = 0.0) -> tuple[bool, bool]:
+    """Returns (speed_inc, speed_dec) booleans for this frame.
+    hazard_reduction_pct: 0-100 percentage to reduce target speed by."""
 
     # Driver manual +/-: recalculate percentage offset and pause
     if driver_speed_button_pressed:
@@ -77,8 +82,9 @@ class ICBMController:
       self._set_state(SpeedState.INACTIVE, frame)
       return False, False
 
-    # Target is always speed_limit * (1 + offset_pct), rounded to nearest mph
-    target = min(round(speed_limit_mph * (1.0 + self.user_offset_pct)),
+    # Target is speed_limit * (1 + offset_pct) * (1 - hazard_pct/100)
+    base_target = speed_limit_mph * (1.0 + self.user_offset_pct)
+    target = min(round(base_target * (1.0 - hazard_reduction_pct / 100.0)),
                  CarControllerParams.ICBM_MAX_SPEED)
     speed_delta = target - cruise_set_speed_mph
     deadband = CarControllerParams.ICBM_SPEED_DEADBAND
@@ -107,7 +113,9 @@ class ICBMController:
       if cruise_set_speed_mph >= CarControllerParams.ICBM_MAX_SPEED:
         self._set_state(SpeedState.HOLDING, frame)
         return False, False
-      if (frame % CarControllerParams.BUTTONS_STEP) == 0:
+      # Send one press, then wait for CAN feedback before pressing again
+      if (frame - self.last_press_frame) >= self.press_cooldown_frames:
+        self.last_press_frame = frame
         return True, False
       return False, False
 
@@ -115,7 +123,8 @@ class ICBMController:
       if speed_delta >= 0:
         self._set_state(SpeedState.HOLDING, frame)
         return False, False
-      if (frame % CarControllerParams.BUTTONS_STEP) == 0:
+      if (frame - self.last_press_frame) >= self.press_cooldown_frames:
+        self.last_press_frame = frame
         return False, True
       return False, False
 
