@@ -36,7 +36,8 @@ class CarControllerParams:
 
   # ICBM (Intelligent Cruise Button Management) parameters
   ICBM_PRE_ACTIVE_DELAY = 0.4           # seconds before starting speed adjustment
-  ICBM_SPEED_DEADBAND = 1               # mph deadband around target
+  ICBM_SPEED_DEADBAND = 2               # mph deadband around target
+  ICBM_PRESS_COOLDOWN = 0.4             # seconds between speed button presses (wait for CAN feedback)
   ICBM_MAX_SPEED = 85                   # mph hard cap
   ICBM_DRIVER_OVERRIDE_COOLDOWN = 3.0   # seconds to suppress after driver button press
   ICBM_GAP_TOGGLE_COOLDOWN = 1.0        # seconds between gap toggles
