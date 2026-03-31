@@ -19,6 +19,8 @@ class CarState(CarStateBase):
 
     self.distance_button = 0
     self.lc_button = 0
+    self.speed_inc_button = 0
+    self.speed_dec_button = 0
     self.lkas_available = False
 
   def update(self, can_parsers) -> structs.CarState:
@@ -64,7 +66,7 @@ class CarState(CarStateBase):
     # LKA availability for vehicles using LKA-based steering (e.g. full-size Bronco)
     # Default to True — Lane_Assist_Data3_FD1 is unreliable/missing on the full-size Bronco
     if self.CP.flags & FordFlags.LKA_STEERING:
-      self.lkas_available = True
+      self.lkas_available = cp.vl["Lane_Assist_Data3_FD1"]["LaActAvail_D_Actl"] == 3
 
     # cruise state
     is_metric = cp.vl["INSTRUMENT_PANEL"]["METRIC_UNITS"] == 1 if not self.CP.flags & FordFlags.CANFD else False
@@ -99,6 +101,8 @@ class CarState(CarStateBase):
     prev_distance_button = self.distance_button
     prev_lc_button = self.lc_button
     self.distance_button = cp.vl["Steering_Data_FD1"]["AccButtnGapTogglePress"]
+    self.speed_inc_button = cp.vl["Steering_Data_FD1"]["CcAslButtnSetIncPress"]
+    self.speed_dec_button = cp.vl["Steering_Data_FD1"]["CcAslButtnSetDecPress"]
     self.lc_button = bool(cp.vl["Steering_Data_FD1"]["TjaButtnOnOffPress"])
 
     # lock info

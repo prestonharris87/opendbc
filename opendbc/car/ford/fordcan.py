@@ -55,17 +55,24 @@ def create_lka_msg(packer, CAN: CanBus, lat_active: bool = False, apply_angle: f
   """
 
   if lat_active:
-    # Convert angle from degrees to milliradians and clip to signal range
-    angle_mrad = apply_angle * 17.4533  # deg * (pi/180) * 1000
+    angle_mrad = apply_angle * 17.4533
     angle_mrad = max(-102.4, min(102.3, angle_mrad))
     values = {
       "LkaActvStats_D2_Req": direction,
       "LaRefAng_No_Req": angle_mrad,
-      "LaRampType_B_Req": ramp_type,
+      "LaRampType_B_Req": 1,
       "LdwActvIntns_D_Req": 3,
+      "LaCurvature_No_Calc": 0.0,
+      "LdwActvStats_D_Req": direction,
     }
   else:
-    values = {}
+    values = {
+      "LkaActvStats_D2_Req": 0,
+      "LdwActvStats_D_Req": 7,
+      "LdwActvIntns_D_Req": 1,
+      "LaRefAng_No_Req": 0.0,
+      "LaCurvature_No_Calc": 0.0,
+    }
 
   return packer.make_can_msg("Lane_Assist_Data1", CAN.main, values)
 
@@ -316,7 +323,8 @@ def create_lkas_ui_msg(packer, CAN: CanBus, main_on: bool, enabled: bool, steer_
   return packer.make_can_msg("IPMA_Data", CAN.main, values)
 
 
-def create_button_msg(packer, bus: int, stock_values: dict, cancel=False, resume=False, tja_toggle=False):
+def create_button_msg(packer, bus: int, stock_values: dict, cancel=False, resume=False, tja_toggle=False,
+                      speed_inc=False, speed_dec=False, gap_toggle=False):
   """
   Creates a CAN message for the Ford SCCM buttons/switches.
 
@@ -363,5 +371,8 @@ def create_button_msg(packer, bus: int, stock_values: dict, cancel=False, resume
     "CcAslButtnCnclPress": 1 if cancel else 0,      # CC cancel button
     "CcAsllButtnResPress": 1 if resume else 0,      # CC resume button
     "TjaButtnOnOffPress": 1 if tja_toggle else 0,   # LCA/TJA toggle button
+    "CcAslButtnSetIncPress": 1 if speed_inc else 0,  # ICBM: cruise speed +1
+    "CcAslButtnSetDecPress": 1 if speed_dec else 0,  # ICBM: cruise speed -1
+    "AccButtnGapTogglePress": 1 if gap_toggle else 0, # ICBM: cycle follow gap
   })
   return packer.make_can_msg("Steering_Data_FD1", bus, values)
