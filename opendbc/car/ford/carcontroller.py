@@ -3,7 +3,9 @@ import numpy as np
 from opendbc.can import CANPacker
 from opendbc.car import ACCELERATION_DUE_TO_GRAVITY, Bus, DT_CTRL, apply_hysteresis, structs
 from opendbc.car.lateral import ISO_LATERAL_ACCEL, apply_std_steer_angle_limits
+from opendbc.car.common.conversions import Conversions as CV
 from opendbc.car.ford import fordcan
+from opendbc.car.ford.icbm import ICBMController, GapController
 from opendbc.car.ford.values import CarControllerParams, FordFlags, CAR, FordSafetyFlags
 from opendbc.car.interfaces import CarControllerBase, V_CRUISE_MAX
 
@@ -82,6 +84,13 @@ class CarController(CarControllerBase):
     self.lead_distance_bars_last = None
     self.distance_bar_frame = 0
 
+    # ICBM controllers for LKA cars (stock ACC speed + gap management)
+    self.icbm = ICBMController()
+    self.gap_controller = GapController()
+    self.icbm_speed_limit_mph = 0
+
+    self._icbm_speed_limit_file = "/data/openpilot/icbm_speed_limit"
+
   def update(self, CC, CS, now_nanos):
     can_sends = []
 
@@ -104,6 +113,36 @@ class CarController(CarControllerBase):
     # Skip for LKA cars (Bronco) — they don't have TJA and this interferes with stock ACC
     elif not (self.CP.flags & FordFlags.LKA_STEERING) and CS.acc_tja_status_stock_values["Tja_D_Stat"] != 0 and (self.frame % CarControllerParams.ACC_UI_STEP) == 0:
       can_sends.append(fordcan.create_button_msg(self.packer, self.CAN.camera, CS.buttons_stock_values, tja_toggle=True))
+
+    ### ICBM: automatic cruise speed + follow distance for LKA cars (stock ACC) ###
+    if (self.CP.flags & FordFlags.LKA_STEERING) and not CC.cruiseControl.cancel and not CC.cruiseControl.resume:
+      # Read speed limit from file every ~1 second
+      if self.frame % 100 == 0:
+        try:
+          with open(self._icbm_speed_limit_file) as f:
+            self.icbm_speed_limit_mph = int(f.read().strip())
+        except Exception:
+          self.icbm_speed_limit_mph = 0
+
+      cruise_set_mph = CS.out.cruiseState.speed * CV.MS_TO_MPH
+      v_ego_mph = CS.out.vEgo * CV.MS_TO_MPH
+      driver_speed_btn = bool(CS.speed_inc_button or CS.speed_dec_button)
+      driver_gap_btn = bool(CS.distance_button)
+      current_gap = int(CS.acc_tja_status_stock_values["AccTGap_D_Dsply"])
+
+      speed_inc, speed_dec = self.icbm.update(
+        self.frame, CS.out.cruiseState.enabled, CC.enabled,
+        cruise_set_mph, self.icbm_speed_limit_mph, driver_speed_btn)
+
+      gap_toggle = self.gap_controller.update(
+        self.frame, CS.out.cruiseState.enabled, CC.enabled,
+        current_gap, v_ego_mph, driver_gap_btn)
+
+      if speed_inc or speed_dec or gap_toggle:
+        can_sends.append(fordcan.create_button_msg(self.packer, self.CAN.camera, CS.buttons_stock_values,
+                                                   speed_inc=speed_inc, speed_dec=speed_dec, gap_toggle=gap_toggle))
+        can_sends.append(fordcan.create_button_msg(self.packer, self.CAN.main, CS.buttons_stock_values,
+                                                   speed_inc=speed_inc, speed_dec=speed_dec, gap_toggle=gap_toggle))
 
     ### lateral control ###
     if self.CP.flags & FordFlags.LKA_STEERING:

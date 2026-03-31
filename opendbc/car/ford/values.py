@@ -34,6 +34,21 @@ class CarControllerParams:
   )
   CURVATURE_ERROR = 0.002  # ~6 degrees at 10 m/s, ~10 degrees at 35 m/s
 
+  # ICBM (Intelligent Cruise Button Management) parameters
+  ICBM_PRE_ACTIVE_DELAY = 0.4           # seconds before starting speed adjustment
+  ICBM_SPEED_DEADBAND = 1               # mph deadband around target
+  ICBM_MAX_SPEED = 85                   # mph hard cap
+  ICBM_DRIVER_OVERRIDE_COOLDOWN = 3.0   # seconds to suppress after driver button press
+  ICBM_GAP_TOGGLE_COOLDOWN = 1.0        # seconds between gap toggles
+
+  # Speed-based gap thresholds: (max_speed_mph, target_gap)
+  ICBM_GAP_THRESHOLDS = [
+    (25, 1),   # < 25 mph: gap 1 (closest)
+    (45, 2),   # 25-45 mph: gap 2
+    (65, 3),   # 45-65 mph: gap 3
+    (999, 4),  # > 65 mph: gap 4 (farthest)
+  ]
+
   ACCEL_MAX = 2.0               # m/s^2 max acceleration
   ACCEL_MIN = -3.5              # m/s^2 max deceleration
   MIN_GAS = -0.5
