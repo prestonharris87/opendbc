@@ -88,10 +88,8 @@ class CarController(CarControllerBase):
     self.icbm = ICBMController()
     self.gap_controller = GapController()
     self.icbm_speed_limit_mph = 0
-    self.icbm_hazard_reduction_pct = 0
 
     self._icbm_speed_limit_file = "/data/openpilot/icbm_speed_limit"
-    self._icbm_hazard_file = "/data/openpilot/icbm_hazard_reduction"
 
   def update(self, CC, CS, now_nanos):
     can_sends = []
@@ -126,14 +124,6 @@ class CarController(CarControllerBase):
         except Exception:
           self.icbm_speed_limit_mph = 0
 
-      # Read hazard reduction every ~0.2 seconds (needs to be responsive)
-      if self.frame % 20 == 0:
-        try:
-          with open(self._icbm_hazard_file) as f:
-            self.icbm_hazard_reduction_pct = int(f.read().strip())
-        except Exception:
-          self.icbm_hazard_reduction_pct = 0
-
       cruise_set_mph = CS.out.cruiseState.speed * CV.MS_TO_MPH
       v_ego_mph = CS.out.vEgo * CV.MS_TO_MPH
       driver_speed_btn = bool(CS.speed_inc_button or CS.speed_dec_button)
@@ -142,8 +132,7 @@ class CarController(CarControllerBase):
 
       speed_inc, speed_dec = self.icbm.update(
         self.frame, CS.out.cruiseState.enabled, CC.enabled,
-        cruise_set_mph, self.icbm_speed_limit_mph, driver_speed_btn,
-        self.icbm_hazard_reduction_pct)
+        cruise_set_mph, self.icbm_speed_limit_mph, driver_speed_btn)
 
       gap_toggle = self.gap_controller.update(
         self.frame, CS.out.cruiseState.enabled, CC.enabled,
