@@ -61,9 +61,9 @@ def create_lka_msg(packer, CAN: CanBus, lat_active: bool = False, apply_angle: f
       "LkaActvStats_D2_Req": direction,
       "LaRefAng_No_Req": angle_mrad,
       "LaRampType_B_Req": 1,
-      "LdwActvIntns_D_Req": 3,
+      "LdwActvIntns_D_Req": 1,        # Match camera baseline (was 3=High, caused vibration?)
       "LaCurvature_No_Calc": 0.0,
-      "LdwActvStats_D_Req": 0,  # Testing 0 again
+      "LdwActvStats_D_Req": 0,
     }
   else:
     values = {
