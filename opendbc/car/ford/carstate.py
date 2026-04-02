@@ -22,6 +22,7 @@ class CarState(CarStateBase):
     self.speed_inc_button = 0
     self.speed_dec_button = 0
     self.lkas_available = False
+    self.lka_active = False
 
   def update(self, can_parsers) -> structs.CarState:
     cp = can_parsers[Bus.pt]
@@ -113,8 +114,8 @@ class CarState(CarStateBase):
     # LaActvStats_D_Dsply from camera: 30 = LA_Off, anything else = LKA is active
     if self.CP.flags & FordFlags.LKA_STEERING:
       acc_active = cp.vl["EngBrakeData"]["CcStat_D_Actl"] in (4, 5)
-      lka_active = cp_cam.vl["IPMA_Data"]["LaActvStats_D_Dsply"] != 30
-      ret.cruiseState.enabled = acc_active and lka_active
+      self.lka_active = cp_cam.vl["IPMA_Data"]["LaActvStats_D_Dsply"] != 30
+      ret.cruiseState.enabled = acc_active and self.lka_active
 
     # lock info
     ret.doorOpen = any([cp.vl["BodyInfo_3_FD1"]["DrStatDrv_B_Actl"], cp.vl["BodyInfo_3_FD1"]["DrStatPsngr_B_Actl"],
