@@ -64,9 +64,12 @@ class CarState(CarStateBase):
       ret.steerFaultTemporary |= cp.vl["Lane_Assist_Data3_FD1"]["LatCtlSte_D_Stat"] not in (1, 2, 3)
 
     # LKA availability for vehicles using LKA-based steering (e.g. full-size Bronco)
-    # Default to True — Lane_Assist_Data3_FD1 is unreliable/missing on the full-size Bronco
+    # Use CAN signal for lockout detection above 25mph; force True below (PSCM still responds at low speed)
     if self.CP.flags & FordFlags.LKA_STEERING:
-      self.lkas_available = cp.vl["Lane_Assist_Data3_FD1"]["LaActAvail_D_Actl"] == 3
+      if ret.vEgoRaw < 11.2:  # below ~25 mph, PSCM reports unavailable but still responds
+        self.lkas_available = True
+      else:
+        self.lkas_available = cp.vl["Lane_Assist_Data3_FD1"]["LaActAvail_D_Actl"] == 3
 
     # cruise state
     is_metric = cp.vl["INSTRUMENT_PANEL"]["METRIC_UNITS"] == 1 if not self.CP.flags & FordFlags.CANFD else False
@@ -104,6 +107,14 @@ class CarState(CarStateBase):
     self.speed_inc_button = cp.vl["Steering_Data_FD1"]["CcAslButtnSetIncPress"]
     self.speed_dec_button = cp.vl["Steering_Data_FD1"]["CcAslButtnSetDecPress"]
     self.lc_button = bool(cp.vl["Steering_Data_FD1"]["TjaButtnOnOffPress"])
+
+    # For LKA cars: gate openpilot engagement behind stock LKA activation state
+    # Stock ACC runs independently; openpilot only activates when LKA is enabled via the steering wheel button
+    # LaActvStats_D_Dsply from camera: 30 = LA_Off, anything else = LKA is active
+    if self.CP.flags & FordFlags.LKA_STEERING:
+      acc_active = cp.vl["EngBrakeData"]["CcStat_D_Actl"] in (4, 5)
+      lka_active = cp_cam.vl["IPMA_Data"]["LaActvStats_D_Dsply"] != 30
+      ret.cruiseState.enabled = acc_active and lka_active
 
     # lock info
     ret.doorOpen = any([cp.vl["BodyInfo_3_FD1"]["DrStatDrv_B_Actl"], cp.vl["BodyInfo_3_FD1"]["DrStatPsngr_B_Actl"],

@@ -63,7 +63,7 @@ def create_lka_msg(packer, CAN: CanBus, lat_active: bool = False, apply_angle: f
       "LaRampType_B_Req": 1,
       "LdwActvIntns_D_Req": 3,
       "LaCurvature_No_Calc": 0.0,
-      "LdwActvStats_D_Req": direction,
+      "LdwActvStats_D_Req": 0,  # Testing 0 again
     }
   else:
     values = {

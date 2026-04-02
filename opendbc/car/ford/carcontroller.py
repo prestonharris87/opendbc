@@ -75,6 +75,7 @@ class CarController(CarControllerBase):
     self.apply_curvature_last = 0
     self.anti_overshoot_curvature_last = 0
     self.apply_angle_last = 0.
+    self.last_direction = 2
     self.accel = 0.0
     self.gas = 0.0
     self.brake_request = False
@@ -155,8 +156,10 @@ class CarController(CarControllerBase):
           apply_angle = apply_ford_angle(actuators.steeringAngleDeg, CS.out.steeringAngleDeg)
           self.apply_angle_last = apply_angle
           # Direction: 2=left intervention, 4=right intervention
-          direction = 2 if apply_angle > 0 else 4
-          # Ramp type: 1=fast for large corrections, 0=slow for fine adjustments
+          # Deadband: don't flip direction on tiny corrections to prevent oscillation vibration
+          if abs(apply_angle) > 0.3:
+            self.last_direction = 2 if apply_angle > 0 else 4
+          direction = self.last_direction
           ramp_type = 1 if abs(apply_angle) >= 5.0 else 0
           can_sends.append(fordcan.create_lka_msg(self.packer, self.CAN, True, apply_angle, 0., direction, ramp_type))
         else:
