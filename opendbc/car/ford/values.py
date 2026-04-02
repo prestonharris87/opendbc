@@ -35,9 +35,9 @@ class CarControllerParams:
   CURVATURE_ERROR = 0.002  # ~6 degrees at 10 m/s, ~10 degrees at 35 m/s
 
   # ICBM (Intelligent Cruise Button Management) parameters
-  ICBM_PRE_ACTIVE_DELAY = 0.4           # seconds before starting speed adjustment
+  ICBM_PRE_ACTIVE_DELAY = 0.1           # seconds before starting speed adjustment
   ICBM_SPEED_DEADBAND = 2               # mph deadband around target
-  ICBM_PRESS_COOLDOWN = 0.4             # seconds between speed button presses (wait for CAN feedback)
+  ICBM_PRESS_COOLDOWN = 0.2             # seconds between speed button presses (wait for CAN feedback)
   ICBM_MAX_SPEED = 85                   # mph hard cap
   ICBM_DRIVER_OVERRIDE_COOLDOWN = 3.0   # seconds to suppress after driver button press
   ICBM_GAP_TOGGLE_COOLDOWN = 1.0        # seconds between gap toggles
