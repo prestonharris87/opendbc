@@ -109,10 +109,6 @@ class CarController(CarControllerBase):
     elif CC.cruiseControl.resume and (self.frame % CarControllerParams.BUTTONS_STEP) == 0:
       can_sends.append(fordcan.create_button_msg(self.packer, self.CAN.camera, CS.buttons_stock_values, resume=True))
       can_sends.append(fordcan.create_button_msg(self.packer, self.CAN.main, CS.buttons_stock_values, resume=True))
-    # LKA cars: auto-engage ACC when LKA is activated but ACC isn't on yet
-    elif (self.CP.flags & FordFlags.LKA_STEERING) and CS.lka_active and not CS.out.cruiseState.enabled and (self.frame % CarControllerParams.BUTTONS_STEP) == 0:
-      can_sends.append(fordcan.create_button_msg(self.packer, self.CAN.camera, CS.buttons_stock_values, resume=True))
-      can_sends.append(fordcan.create_button_msg(self.packer, self.CAN.main, CS.buttons_stock_values, resume=True))
     # if stock lane centering isn't off, send a button press to toggle it off
     # the stock system checks for steering pressed, and eventually disengages cruise control
     # Skip for LKA cars (Bronco) — they don't have TJA and this interferes with stock ACC

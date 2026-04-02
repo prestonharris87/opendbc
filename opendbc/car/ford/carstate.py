@@ -22,7 +22,6 @@ class CarState(CarStateBase):
     self.speed_inc_button = 0
     self.speed_dec_button = 0
     self.lkas_available = False
-    self.lka_active = False
 
   def update(self, can_parsers) -> structs.CarState:
     cp = can_parsers[Bus.pt]
@@ -108,14 +107,6 @@ class CarState(CarStateBase):
     self.speed_inc_button = cp.vl["Steering_Data_FD1"]["CcAslButtnSetIncPress"]
     self.speed_dec_button = cp.vl["Steering_Data_FD1"]["CcAslButtnSetDecPress"]
     self.lc_button = bool(cp.vl["Steering_Data_FD1"]["TjaButtnOnOffPress"])
-
-    # For LKA cars: gate openpilot engagement behind stock LKA activation state
-    # Stock ACC runs independently; openpilot only activates when LKA is enabled via the steering wheel button
-    # LaActvStats_D_Dsply from camera: 30 = LA_Off, anything else = LKA is active
-    if self.CP.flags & FordFlags.LKA_STEERING:
-      acc_active = cp.vl["EngBrakeData"]["CcStat_D_Actl"] in (4, 5)
-      self.lka_active = cp_cam.vl["IPMA_Data"]["LaActvStats_D_Dsply"] != 30
-      ret.cruiseState.enabled = acc_active and self.lka_active
 
     # lock info
     ret.doorOpen = any([cp.vl["BodyInfo_3_FD1"]["DrStatDrv_B_Actl"], cp.vl["BodyInfo_3_FD1"]["DrStatPsngr_B_Actl"],
