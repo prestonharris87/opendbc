@@ -158,7 +158,8 @@ class CarController(CarControllerBase):
           # Direction: 2=left intervention, 4=right intervention
           direction = 2 if CS.out.steeringAngleDeg > 0 else 4
           ramp_type = 1 if abs(apply_angle) >= 5.0 else 0
-          can_sends.append(fordcan.create_lka_msg(self.packer, self.CAN, True, apply_angle, 0., direction, ramp_type))
+          intensity = 3 if abs(apply_angle) > 2.0 else 1
+          can_sends.append(fordcan.create_lka_msg(self.packer, self.CAN, True, apply_angle, 0., direction, ramp_type, intensity))
         else:
           self.apply_angle_last = 0.
           can_sends.append(fordcan.create_lka_msg(self.packer, self.CAN))

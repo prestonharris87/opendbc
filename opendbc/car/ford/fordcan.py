@@ -34,7 +34,7 @@ def calculate_lat_ctl2_checksum(mode: int, counter: int, dat: bytearray) -> int:
 
 
 def create_lka_msg(packer, CAN: CanBus, lat_active: bool = False, apply_angle: float = 0.,
-                    curvature: float = 0., direction: int = 0, ramp_type: int = 0):
+                    curvature: float = 0., direction: int = 0, ramp_type: int = 0, intensity: int = 1):
   """
   Creates a CAN message for the Ford LKA Command.
 
@@ -60,8 +60,8 @@ def create_lka_msg(packer, CAN: CanBus, lat_active: bool = False, apply_angle: f
     values = {
       "LkaActvStats_D2_Req": direction,
       "LaRefAng_No_Req": angle_mrad,
-      "LaRampType_B_Req": 1,
-      "LdwActvIntns_D_Req": 1,        # Match camera baseline (was 3=High, caused vibration?)
+      "LaRampType_B_Req": ramp_type,
+      "LdwActvIntns_D_Req": intensity,  # 1=gentle (no lockout), 3=forceful (for curve entry)
       "LaCurvature_No_Calc": 0.0,
       "LdwActvStats_D_Req": 0,
     }
