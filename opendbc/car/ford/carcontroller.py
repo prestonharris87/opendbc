@@ -148,18 +148,20 @@ class CarController(CarControllerBase):
     ### lateral control ###
     if self.CP.flags & FordFlags.LKA_STEERING:
       # LKA angle-based steering (full-size Bronco and similar)
-      # Note: no LateralMotionControl sent — camera's messages pass through relay unblocked
+
+      # Send empty LateralMotionControl at 20Hz to block camera's lane departure interventions
+      # (mims002 approach — prevents camera's LDW from conflicting with our LKA steering)
+      if (self.frame % CarControllerParams.STEER_STEP) == 0:
+        can_sends.append(fordcan.create_lat_ctl_msg(self.packer, self.CAN, False, 0., 0., 0., 0.))
 
       # Send active LKA steering commands at 33Hz
       if (self.frame % CarControllerParams.LKA_STEP) == 0:
         if CC.latActive and CS.lkas_available:
           apply_angle = apply_ford_angle(actuators.steeringAngleDeg, CS.out.steeringAngleDeg)
           self.apply_angle_last = apply_angle
-          # Direction: 2=left intervention, 4=right intervention
           direction = 2 if CS.out.steeringAngleDeg > 0 else 4
           ramp_type = 1 if abs(apply_angle) >= 5.0 else 0
-          intensity = 3 if abs(apply_angle) > 2.0 else 1
-          can_sends.append(fordcan.create_lka_msg(self.packer, self.CAN, True, apply_angle, 0., direction, ramp_type, intensity))
+          can_sends.append(fordcan.create_lka_msg(self.packer, self.CAN, True, apply_angle, 0., direction, ramp_type))
         else:
           self.apply_angle_last = 0.
           can_sends.append(fordcan.create_lka_msg(self.packer, self.CAN))

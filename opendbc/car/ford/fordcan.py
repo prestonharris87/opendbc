@@ -58,20 +58,23 @@ def create_lka_msg(packer, CAN: CanBus, lat_active: bool = False, apply_angle: f
     angle_mrad = apply_angle * 17.4533
     angle_mrad = max(-102.4, min(102.3, angle_mrad))
     values = {
+      "LkaDrvOvrrd_D_Rq": 0,
       "LkaActvStats_D2_Req": direction,
       "LaRefAng_No_Req": angle_mrad,
       "LaRampType_B_Req": ramp_type,
-      "LdwActvIntns_D_Req": intensity,  # 1=gentle (no lockout), 3=forceful (for curve entry)
+      "LdwActvIntns_D_Req": 3,
       "LaCurvature_No_Calc": 0.0,
       "LdwActvStats_D_Req": 0,
     }
   else:
     values = {
+      "LkaDrvOvrrd_D_Rq": 0,
       "LkaActvStats_D2_Req": 0,
-      "LdwActvStats_D_Req": 7,
-      "LdwActvIntns_D_Req": 1,
       "LaRefAng_No_Req": 0.0,
+      "LaRampType_B_Req": 0,
+      "LdwActvIntns_D_Req": 3,
       "LaCurvature_No_Calc": 0.0,
+      "LdwActvStats_D_Req": 0,
     }
 
   return packer.make_can_msg("Lane_Assist_Data1", CAN.main, values)

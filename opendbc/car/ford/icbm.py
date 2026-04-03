@@ -82,9 +82,8 @@ class ICBMController:
       self._set_state(SpeedState.INACTIVE, frame)
       return False, False
 
-    # Target is speed_limit * (1 + offset_pct) * (1 - hazard_pct/100)
-    base_target = speed_limit_mph * (1.0 + self.user_offset_pct)
-    target = min(round(base_target * (1.0 - hazard_reduction_pct / 100.0)),
+    # Target is speed_limit * (1 + offset_pct)
+    target = min(round(speed_limit_mph * (1.0 + self.user_offset_pct)),
                  CarControllerParams.ICBM_MAX_SPEED)
     speed_delta = target - cruise_set_speed_mph
     deadband = CarControllerParams.ICBM_SPEED_DEADBAND
