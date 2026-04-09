@@ -69,7 +69,7 @@ class CarState(CarStateBase):
       if ret.vEgoRaw < 11.2:  # below ~25 mph, PSCM reports unavailable but still responds
         self.lkas_available = True
       else:
-        self.lkas_available = cp.vl["Lane_Assist_Data3_FD1"]["LaActAvail_D_Actl"] == 3
+        self.lkas_available = cp.vl["Lane_Assist_Data3_FD1"]["LaActAvail_D_Actl"] >= 2
 
     # cruise state
     is_metric = cp.vl["INSTRUMENT_PANEL"]["METRIC_UNITS"] == 1 if not self.CP.flags & FordFlags.CANFD else False

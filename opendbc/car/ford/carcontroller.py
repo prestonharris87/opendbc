@@ -76,6 +76,10 @@ class CarController(CarControllerBase):
     self.anti_overshoot_curvature_last = 0
     self.apply_angle_last = 0.
     self.last_direction = 2
+    self.lka_steer_active_frames = 0  # Track continuous active steering for lockout avoidance
+    self.lka_blip_length = 3          # frames of direction=0 blip (~90ms)
+    self.lka_blipping = False         # Currently in a blip
+    self.lka_blip_frames = 0          # Counter during blip
     self.accel = 0.0
     self.gas = 0.0
     self.brake_request = False
@@ -161,9 +165,39 @@ class CarController(CarControllerBase):
           self.apply_angle_last = apply_angle
           direction = 2 if CS.out.steeringAngleDeg > 0 else 4
           ramp_type = 1 if abs(apply_angle) >= 5.0 else 0
-          can_sends.append(fordcan.create_lka_msg(self.packer, self.CAN, True, apply_angle, 0., direction, ramp_type))
+
+          # Smart lockout avoidance: blip direction=0 to reset 7.09s PSCM timer
+          # Prefer blipping on straights (small angle) so curves get full timer
+          #   - After 148 frames (~4.5s): look for opportunity (abs(apply_angle) < 1.0)
+          #   - After 220 frames (~6.7s): force blip regardless (emergency, avoid lockout)
+          self.lka_steer_active_frames += 1
+
+          if self.lka_blipping:
+            # Currently in a blip — send baseline
+            self.lka_blip_frames += 1
+            can_sends.append(fordcan.create_lka_msg(self.packer, self.CAN))
+            if self.lka_blip_frames >= self.lka_blip_length:
+              self.lka_blipping = False
+              self.lka_blip_frames = 0
+              self.lka_steer_active_frames = 0
+          elif self.lka_steer_active_frames >= 220:
+            # Emergency: force blip before lockout
+            self.lka_blipping = True
+            self.lka_blip_frames = 0
+            can_sends.append(fordcan.create_lka_msg(self.packer, self.CAN))
+          elif self.lka_steer_active_frames >= 148 and abs(apply_angle) < 1.0:
+            # Opportunistic: on a straight section, good time to blip
+            self.lka_blipping = True
+            self.lka_blip_frames = 0
+            can_sends.append(fordcan.create_lka_msg(self.packer, self.CAN))
+          else:
+            # Normal steering
+            can_sends.append(fordcan.create_lka_msg(self.packer, self.CAN, True, apply_angle, 0., direction, ramp_type))
         else:
           self.apply_angle_last = 0.
+          self.lka_steer_active_frames = 0
+          self.lka_blipping = False
+          self.lka_blip_frames = 0
           can_sends.append(fordcan.create_lka_msg(self.packer, self.CAN))
     else:
       # Standard curvature-based steering (LCA/TJA)
